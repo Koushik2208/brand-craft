@@ -50,7 +50,7 @@ export function AuthPage() {
         if (error) {
           setError(error.message);
         } else {
-          navigate('/dashboard');
+          navigate('/onboarding');
         }
       } else {
         if (!formData.email || !formData.password) {
