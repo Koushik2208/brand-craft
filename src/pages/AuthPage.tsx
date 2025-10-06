@@ -1,21 +1,77 @@
-import { useState } from 'react';
-import { Eye, EyeOff, Mail, Lock, User, ArrowLeft } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Eye, EyeOff, Mail, Lock, User, ArrowLeft, AlertCircle } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 export function AuthPage() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const { signUp, signIn, user } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submitted:', formData);
+    setError(null);
+    setLoading(true);
+
+    try {
+      if (isSignUp) {
+        if (!formData.name || !formData.email || !formData.password) {
+          setError('Please fill in all fields');
+          setLoading(false);
+          return;
+        }
+
+        if (formData.password.length < 6) {
+          setError('Password must be at least 6 characters');
+          setLoading(false);
+          return;
+        }
+
+        const { error } = await signUp(formData.email, formData.password, formData.name);
+
+        if (error) {
+          setError(error.message);
+        } else {
+          navigate('/dashboard');
+        }
+      } else {
+        if (!formData.email || !formData.password) {
+          setError('Please fill in all fields');
+          setLoading(false);
+          return;
+        }
+
+        const { error } = await signIn(formData.email, formData.password);
+
+        if (error) {
+          setError(error.message);
+        } else {
+          navigate('/dashboard');
+        }
+      }
+    } catch (err) {
+      setError('An unexpected error occurred');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -44,6 +100,13 @@ export function AuthPage() {
                 : 'Sign in to continue to BrandCraft'}
             </p>
           </div>
+
+          {error && (
+            <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/50 flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+              <p className="text-red-500 text-sm">{error}</p>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {isSignUp && (
@@ -129,9 +192,17 @@ export function AuthPage() {
 
             <Button
               type="submit"
-              className="w-full bg-gradient-to-r from-[#1E90FF] to-[#FF2D95] hover:opacity-90 text-white h-12 text-lg rounded-xl transition-all duration-300 hover:scale-[1.02] shadow-[0_0_30px_rgba(30,144,255,0.3)]"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-[#1E90FF] to-[#FF2D95] hover:opacity-90 text-white h-12 text-lg rounded-xl transition-all duration-300 hover:scale-[1.02] shadow-[0_0_30px_rgba(30,144,255,0.3)] disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSignUp ? 'Create Account' : 'Sign In'}
+              {loading ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>{isSignUp ? 'Creating Account...' : 'Signing In...'}</span>
+                </div>
+              ) : (
+                isSignUp ? 'Create Account' : 'Sign In'
+              )}
             </Button>
           </form>
 
