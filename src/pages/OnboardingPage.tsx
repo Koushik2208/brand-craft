@@ -11,17 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import {
-  ArrowRight,
-  ArrowLeft,
-  Sparkles,
-  Target,
-  Users,
-  MessageSquare,
-  BookOpen,
-  Calendar,
-  CheckCircle2
-} from 'lucide-react';
+import { ArrowRight, ArrowLeft, Sparkles, Target, Users, MessageSquare, BookOpen, Calendar, CircleCheck as CheckCircle2 } from 'lucide-react';
 
 interface OnboardingData {
   fullName: string;
