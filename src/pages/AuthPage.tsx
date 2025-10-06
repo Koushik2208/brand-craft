@@ -5,6 +5,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 
 export function AuthPage() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -64,7 +65,17 @@ export function AuthPage() {
         if (error) {
           setError(error.message);
         } else {
-          navigate('/dashboard');
+          const { data: profile } = await supabase
+            .from('user_profiles')
+            .select('onboarding_completed')
+            .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+            .maybeSingle();
+
+          if (!profile || !profile.onboarding_completed) {
+            navigate('/onboarding');
+          } else {
+            navigate('/dashboard');
+          }
         }
       }
     } catch (err) {
