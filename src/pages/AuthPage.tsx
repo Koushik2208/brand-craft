@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Eye, EyeOff, Mail, Lock, User, ArrowLeft, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, ArrowLeft, CircleAlert as AlertCircle } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
