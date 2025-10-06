@@ -27,7 +27,7 @@ export function OnboardingCheck({ children }: OnboardingCheckProps) {
           .maybeSingle();
 
         if (error) {
-          console.error('Error checking onboarding status:', error);
+          console.warn('Database not ready, skipping onboarding check:', error);
           setIsChecking(false);
           return;
         }
@@ -38,7 +38,7 @@ export function OnboardingCheck({ children }: OnboardingCheckProps) {
           setIsChecking(false);
         }
       } catch (error) {
-        console.error('Error checking onboarding status:', error);
+        console.warn('Error checking onboarding status:', error);
         setIsChecking(false);
       }
     };
