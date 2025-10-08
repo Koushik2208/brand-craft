@@ -47,6 +47,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
     });
 
+    if (!error && data.user && data.session) {
+      setUser(data.user);
+      setSession(data.session);
+    }
+
     return { error, data };
   };
 

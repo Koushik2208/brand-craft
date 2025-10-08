@@ -52,20 +52,10 @@ export function AuthPage() {
         if (error) {
           setError(error.message);
         } else {
-          if (data?.user && !data.session) {
+          if (data?.user && data.session) {
+            navigate('/onboarding');
+          } else if (data?.user && !data.session) {
             setVerificationSent(true);
-          } else if (data?.session) {
-            const { data: profile } = await supabase
-              .from('user_profiles')
-              .select('onboarding_completed')
-              .eq('user_id', data.user?.id)
-              .maybeSingle();
-
-            if (!profile || !profile.onboarding_completed) {
-              navigate('/onboarding');
-            } else {
-              navigate('/dashboard');
-            }
           }
         }
       } else {
