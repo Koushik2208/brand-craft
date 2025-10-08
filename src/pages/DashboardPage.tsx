@@ -1,15 +1,110 @@
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/button';
-import { LogOut, Sparkles, TrendingUp, Users, Zap } from 'lucide-react';
+import { LogOut, Sparkles, TrendingUp, Users, Zap, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
+import { generateContent, GeneratedContent } from '../services/contentGenerator';
+import { toast } from 'sonner';
 
 export function DashboardPage() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedContent, setGeneratedContent] = useState<GeneratedContent | null>(null);
+  const [topicsOfInterest, setTopicsOfInterest] = useState<string[]>([]);
+  const [contentCount, setContentCount] = useState(0);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!user) return;
+
+      const { data: onboardingData } = await supabase
+        .from('onboarding_responses')
+        .select('topics_of_interest')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (onboardingData?.topics_of_interest) {
+        setTopicsOfInterest(onboardingData.topics_of_interest);
+      }
+
+      const { count } = await supabase
+        .from('generated_content')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+
+      if (count !== null) {
+        setContentCount(count);
+      }
+    };
+
+    fetchUserData();
+  }, [user]);
 
   const handleSignOut = async () => {
     await signOut();
     navigate('/');
+  };
+
+  const handleGenerateContent = async () => {
+    if (!user) {
+      toast.error('You must be logged in to generate content');
+      return;
+    }
+
+    if (topicsOfInterest.length === 0) {
+      toast.error('No topics found. Please complete onboarding first.');
+      navigate('/onboarding');
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const content = await generateContent(topicsOfInterest);
+      setGeneratedContent(content);
+
+      await Promise.all([
+        supabase.from('generated_content').insert({
+          user_id: user.id,
+          title: `${content.generated_topic} - Instagram Carousel`,
+          content: content.platforms.instagram.content.join('\n\n'),
+          content_type: 'instagram_carousel',
+          platform: 'instagram',
+          tone: 'professional',
+          topics: [content.main_topic],
+          status: 'draft',
+        }),
+        supabase.from('generated_content').insert({
+          user_id: user.id,
+          title: `${content.generated_topic} - X Tweet`,
+          content: content.platforms.x.content,
+          content_type: 'x_tweet',
+          platform: 'x',
+          tone: 'professional',
+          topics: [content.main_topic],
+          status: 'draft',
+        }),
+        supabase.from('generated_content').insert({
+          user_id: user.id,
+          title: `${content.generated_topic} - LinkedIn Post`,
+          content: content.platforms.linkedin.content,
+          content_type: 'linkedin_post',
+          platform: 'linkedin',
+          tone: 'professional',
+          topics: [content.main_topic],
+          status: 'draft',
+        }),
+      ]);
+
+      setContentCount((prev) => prev + 3);
+      toast.success('Content generated successfully!');
+    } catch (error) {
+      console.error('Error generating content:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to generate content');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
@@ -64,7 +159,7 @@ export function DashboardPage() {
                 </div>
                 <h3 className="text-xl font-bold mb-2">Content Generated</h3>
                 <p className="text-4xl font-bold bg-gradient-to-r from-[#1E90FF] to-[#FF2D95] bg-clip-text text-transparent">
-                  0
+                  {contentCount}
                 </p>
                 <p className="text-gray-500 text-sm mt-2">AI-powered posts</p>
               </div>
@@ -104,11 +199,116 @@ export function DashboardPage() {
               </p>
               <Button
                 size="lg"
-                className="bg-gradient-to-r from-[#1E90FF] to-[#FF2D95] hover:opacity-90 text-white text-lg px-10 py-6 rounded-full transition-all duration-300 hover:scale-105 shadow-[0_0_30px_rgba(30,144,255,0.3)]"
+                onClick={handleGenerateContent}
+                disabled={isGenerating}
+                className="bg-gradient-to-r from-[#1E90FF] to-[#FF2D95] hover:opacity-90 text-white text-lg px-10 py-6 rounded-full transition-all duration-300 hover:scale-105 shadow-[0_0_30px_rgba(30,144,255,0.3)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
-                Generate Content
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Generating Content...
+                  </>
+                ) : (
+                  'Generate Content'
+                )}
               </Button>
             </div>
+
+            {generatedContent && (
+              <div className="mt-12 space-y-6">
+                <div className="text-center mb-8">
+                  <h3 className="font-['Bebas_Neue',sans-serif] text-4xl mb-2">
+                    <span className="bg-gradient-to-r from-[#1E90FF] to-[#FF2D95] bg-clip-text text-transparent">
+                      YOUR GENERATED CONTENT
+                    </span>
+                  </h3>
+                  <p className="text-gray-400">
+                    Topic: <span className="text-white font-semibold">{generatedContent.generated_topic}</span>
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="p-6 rounded-2xl bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border-2 border-[#2a2a2a]">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                        <span className="text-white font-bold text-sm">IG</span>
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-white">Instagram Carousel</h4>
+                        <p className="text-xs text-gray-500">{generatedContent.platforms.instagram.content.length} slides</p>
+                      </div>
+                    </div>
+                    <div className="space-y-3 mb-4">
+                      {generatedContent.platforms.instagram.content.map((slide, index) => (
+                        <div key={index} className="p-3 rounded-lg bg-[#0d0d0d] border border-[#2a2a2a]">
+                          <p className="text-xs text-[#1E90FF] font-semibold mb-1">Slide {index + 1}</p>
+                          <p className="text-sm text-gray-300">{slide}</p>
+                        </div>
+                      ))}
+                    </div>
+                    {generatedContent.platforms.instagram.cta && (
+                      <div className="p-3 rounded-lg bg-[#1E90FF]/10 border border-[#1E90FF]/30">
+                        <p className="text-xs text-[#1E90FF] font-semibold mb-1">CTA</p>
+                        <p className="text-sm text-gray-300">{generatedContent.platforms.instagram.cta}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="p-6 rounded-2xl bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border-2 border-[#2a2a2a]">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 rounded-lg bg-black flex items-center justify-center">
+                        <span className="text-white font-bold text-sm">𝕏</span>
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-white">X (Twitter)</h4>
+                        <p className="text-xs text-gray-500">Tweet</p>
+                      </div>
+                    </div>
+                    <div className="p-4 rounded-lg bg-[#0d0d0d] border border-[#2a2a2a] mb-4">
+                      <p className="text-sm text-gray-300 leading-relaxed">{generatedContent.platforms.x.content}</p>
+                    </div>
+                    {generatedContent.platforms.x.cta && (
+                      <div className="p-3 rounded-lg bg-[#1E90FF]/10 border border-[#1E90FF]/30">
+                        <p className="text-xs text-[#1E90FF] font-semibold mb-1">CTA</p>
+                        <p className="text-sm text-gray-300">{generatedContent.platforms.x.cta}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="p-6 rounded-2xl bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border-2 border-[#2a2a2a]">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 rounded-lg bg-[#0077B5] flex items-center justify-center">
+                        <span className="text-white font-bold text-sm">in</span>
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-white">LinkedIn</h4>
+                        <p className="text-xs text-gray-500">Professional Post</p>
+                      </div>
+                    </div>
+                    <div className="p-4 rounded-lg bg-[#0d0d0d] border border-[#2a2a2a] mb-4">
+                      <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">{generatedContent.platforms.linkedin.content}</p>
+                    </div>
+                    {generatedContent.platforms.linkedin.cta && (
+                      <div className="p-3 rounded-lg bg-[#1E90FF]/10 border border-[#1E90FF]/30">
+                        <p className="text-xs text-[#1E90FF] font-semibold mb-1">CTA</p>
+                        <p className="text-sm text-gray-300">{generatedContent.platforms.linkedin.cta}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="text-center">
+                  <Button
+                    onClick={handleGenerateContent}
+                    disabled={isGenerating}
+                    variant="outline"
+                    className="border-[#2a2a2a] text-gray-300 hover:bg-[#1a1a1a] hover:text-white hover:border-[#1E90FF]"
+                  >
+                    Generate New Content
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </main>
