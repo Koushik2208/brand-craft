@@ -29,13 +29,46 @@ export function DashboardPage() {
         setTopicsOfInterest(onboardingData.topics_of_interest);
       }
 
-      const { count } = await supabase
+      const { data: contentData, count } = await supabase
         .from('generated_content')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id);
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(3);
 
       if (count !== null) {
         setContentCount(count);
+      }
+
+      if (contentData && contentData.length >= 3) {
+        const instagramPost = contentData.find(c => c.platform === 'instagram');
+        const xPost = contentData.find(c => c.platform === 'x');
+        const linkedinPost = contentData.find(c => c.platform === 'linkedin');
+
+        if (instagramPost && xPost && linkedinPost) {
+          const reconstructedContent: GeneratedContent = {
+            main_topic: instagramPost.topics[0] || 'Your Topic',
+            generated_topic: instagramPost.title.replace(/ - (Instagram Carousel|X Tweet|LinkedIn Post)$/, ''),
+            platforms: {
+              instagram: {
+                post_type: 'instagram_carousel',
+                content: instagramPost.content.split('\n\n'),
+                cta: '',
+              },
+              x: {
+                post_type: 'x_tweet',
+                content: xPost.content,
+                cta: '',
+              },
+              linkedin: {
+                post_type: 'linkedin_post',
+                content: linkedinPost.content,
+                cta: '',
+              },
+            },
+          };
+          setGeneratedContent(reconstructedContent);
+        }
       }
     };
 
@@ -187,32 +220,34 @@ export function DashboardPage() {
               </div>
             </div>
 
-            <div className="p-8 rounded-3xl bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border-2 border-[#1E90FF]/30 shadow-[0_0_60px_rgba(30,144,255,0.15)] text-center">
-              <Zap className="w-16 h-16 mx-auto mb-6 text-[#1E90FF]" />
-              <h3 className="font-['Bebas_Neue',sans-serif] text-4xl mb-4">
-                <span className="bg-gradient-to-r from-[#1E90FF] to-[#FF2D95] bg-clip-text text-transparent">
-                  READY TO CREATE?
-                </span>
-              </h3>
-              <p className="text-gray-400 mb-6 max-w-2xl mx-auto">
-                Start generating engaging content for your social media profiles. Our AI will help you maintain consistency and build your personal brand.
-              </p>
-              <Button
-                size="lg"
-                onClick={handleGenerateContent}
-                disabled={isGenerating}
-                className="bg-gradient-to-r from-[#1E90FF] to-[#FF2D95] hover:opacity-90 text-white text-lg px-10 py-6 rounded-full transition-all duration-300 hover:scale-105 shadow-[0_0_30px_rgba(30,144,255,0.3)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-              >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Generating Content...
-                  </>
-                ) : (
-                  'Generate Content'
-                )}
-              </Button>
-            </div>
+            {!generatedContent && (
+              <div className="p-8 rounded-3xl bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border-2 border-[#1E90FF]/30 shadow-[0_0_60px_rgba(30,144,255,0.15)] text-center">
+                <Zap className="w-16 h-16 mx-auto mb-6 text-[#1E90FF]" />
+                <h3 className="font-['Bebas_Neue',sans-serif] text-4xl mb-4">
+                  <span className="bg-gradient-to-r from-[#1E90FF] to-[#FF2D95] bg-clip-text text-transparent">
+                    READY TO CREATE?
+                  </span>
+                </h3>
+                <p className="text-gray-400 mb-6 max-w-2xl mx-auto">
+                  Start generating engaging content for your social media profiles. Our AI will help you maintain consistency and build your personal brand.
+                </p>
+                <Button
+                  size="lg"
+                  onClick={handleGenerateContent}
+                  disabled={isGenerating}
+                  className="bg-gradient-to-r from-[#1E90FF] to-[#FF2D95] hover:opacity-90 text-white text-lg px-10 py-6 rounded-full transition-all duration-300 hover:scale-105 shadow-[0_0_30px_rgba(30,144,255,0.3)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Generating Content...
+                    </>
+                  ) : (
+                    'Generate Content'
+                  )}
+                </Button>
+              </div>
+            )}
 
             {generatedContent && (
               <div className="mt-12 space-y-6">
@@ -299,12 +334,22 @@ export function DashboardPage() {
 
                 <div className="text-center">
                   <Button
+                    size="lg"
                     onClick={handleGenerateContent}
                     disabled={isGenerating}
-                    variant="outline"
-                    className="border-[#2a2a2a] text-gray-300 hover:bg-[#1a1a1a] hover:text-white hover:border-[#1E90FF]"
+                    className="bg-gradient-to-r from-[#1E90FF] to-[#FF2D95] hover:opacity-90 text-white text-lg px-10 py-6 rounded-full transition-all duration-300 hover:scale-105 shadow-[0_0_30px_rgba(30,144,255,0.3)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                   >
-                    Generate New Content
+                    {isGenerating ? (
+                      <>
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                        Generating Content...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-5 h-5 mr-2" />
+                        Generate More Content
+                      </>
+                    )}
                   </Button>
                 </div>
               </div>
