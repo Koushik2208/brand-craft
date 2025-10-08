@@ -12,6 +12,7 @@ export function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [verificationSent, setVerificationSent] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -46,12 +47,26 @@ export function AuthPage() {
           return;
         }
 
-        const { error } = await signUp(formData.email, formData.password, formData.name);
+        const { error, data } = await signUp(formData.email, formData.password, formData.name);
 
         if (error) {
           setError(error.message);
         } else {
-          navigate('/onboarding');
+          if (data?.user && !data.session) {
+            setVerificationSent(true);
+          } else if (data?.session) {
+            const { data: profile } = await supabase
+              .from('user_profiles')
+              .select('onboarding_completed')
+              .eq('user_id', data.user?.id)
+              .maybeSingle();
+
+            if (!profile || !profile.onboarding_completed) {
+              navigate('/onboarding');
+            } else {
+              navigate('/dashboard');
+            }
+          }
         }
       } else {
         if (!formData.email || !formData.password) {
@@ -63,7 +78,11 @@ export function AuthPage() {
         const { error } = await signIn(formData.email, formData.password);
 
         if (error) {
-          setError(error.message);
+          if (error.message.includes('Email not confirmed')) {
+            setError('Please verify your email address before signing in. Check your inbox for the verification link.');
+          } else {
+            setError(error.message);
+          }
         } else {
           const { data: profile } = await supabase
             .from('user_profiles')
@@ -84,6 +103,59 @@ export function AuthPage() {
       setLoading(false);
     }
   };
+
+  if (verificationSent) {
+    return (
+      <div className="min-h-screen bg-[#121212] flex items-center justify-center p-6 relative overflow-hidden">
+        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-[#1E90FF]/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-[#FF2D95]/10 rounded-full blur-[120px]" />
+
+        <div className="w-full max-w-md relative z-10">
+          <div className="p-8 rounded-3xl bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border-2 border-[#2a2a2a] shadow-[0_0_60px_rgba(30,144,255,0.15)]">
+            <div className="text-center mb-8">
+              <div className="w-16 h-16 bg-gradient-to-r from-[#1E90FF] to-[#FF2D95] rounded-full flex items-center justify-center mx-auto mb-4">
+                <Mail className="w-8 h-8 text-white" />
+              </div>
+              <h1 className="font-['Bebas_Neue',sans-serif] text-4xl bg-gradient-to-r from-[#1E90FF] to-[#FF2D95] bg-clip-text text-transparent mb-3">
+                CHECK YOUR EMAIL
+              </h1>
+              <p className="text-gray-400 mb-6">
+                We've sent a verification link to <span className="text-white font-semibold">{formData.email}</span>
+              </p>
+              <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/50">
+                <p className="text-blue-400 text-sm">
+                  Please check your inbox and click the verification link to activate your account. Once verified, you can sign in to continue.
+                </p>
+              </div>
+            </div>
+
+            <Button
+              onClick={() => {
+                setVerificationSent(false);
+                setIsSignUp(false);
+                setFormData({ name: '', email: '', password: '' });
+              }}
+              className="w-full bg-gradient-to-r from-[#1E90FF] to-[#FF2D95] hover:opacity-90 text-white h-12 text-lg rounded-xl transition-all duration-300 hover:scale-[1.02]"
+            >
+              Go to Sign In
+            </Button>
+
+            <div className="mt-6 text-center">
+              <p className="text-gray-400 text-sm">
+                Didn't receive the email?{' '}
+                <button
+                  onClick={() => setVerificationSent(false)}
+                  className="text-[#1E90FF] hover:text-[#FF2D95] font-semibold transition-colors"
+                >
+                  Try again
+                </button>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#121212] flex items-center justify-center p-6 relative overflow-hidden">
