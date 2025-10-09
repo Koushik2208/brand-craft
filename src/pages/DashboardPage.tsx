@@ -1,6 +1,7 @@
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/button';
-import { LogOut, Sparkles, TrendingUp, Users, Zap, Loader2, UserCircle } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
+import { Sparkles, TrendingUp, Users, Zap, Loader2, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
@@ -8,16 +9,29 @@ import { generateContent, GeneratedContent } from '../services/contentGenerator'
 import { toast } from 'sonner';
 
 export function DashboardPage() {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedContent, setGeneratedContent] = useState<GeneratedContent | null>(null);
   const [topicsOfInterest, setTopicsOfInterest] = useState<string[]>([]);
   const [contentCount, setContentCount] = useState(0);
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [fullName, setFullName] = useState('');
 
   useEffect(() => {
     const fetchUserData = async () => {
       if (!user) return;
+
+      const { data: profileData } = await supabase
+        .from('user_profiles')
+        .select('avatar_url, full_name')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (profileData) {
+        setAvatarUrl(profileData.avatar_url || '');
+        setFullName(profileData.full_name || '');
+      }
 
       const { data: onboardingData } = await supabase
         .from('onboarding_responses')
@@ -75,9 +89,14 @@ export function DashboardPage() {
     fetchUserData();
   }, [user]);
 
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/');
+  const getInitials = (name: string) => {
+    if (!name) return '';
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
   };
 
   const handleGenerateContent = async () => {
@@ -153,26 +172,23 @@ export function DashboardPage() {
             </h1>
 
             <div className="flex items-center gap-4">
-              <div className="text-right hidden sm:block">
-                <p className="text-sm text-gray-400">Welcome back,</p>
-                <p className="text-white font-semibold">
-                  {user?.user_metadata?.full_name || user?.email?.split('@')[0]}
-                </p>
-              </div>
-              <Button
-                variant="ghost"
-                className="text-gray-400 hover:text-white hover:bg-transparent"
+              <button
                 onClick={() => navigate('/profile')}
+                className="flex items-center gap-3 hover:opacity-80 transition-opacity"
               >
-                <UserCircle className="w-5 h-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                className="text-gray-400 hover:text-white hover:bg-transparent"
-                onClick={handleSignOut}
-              >
-                <LogOut className="w-5 h-5" />
-              </Button>
+                <div className="text-right hidden sm:block">
+                  <p className="text-sm text-gray-400">Welcome back,</p>
+                  <p className="text-white font-semibold">
+                    {fullName || user?.email?.split('@')[0]}
+                  </p>
+                </div>
+                <Avatar className="w-10 h-10 border-2 border-[#1E90FF]">
+                  <AvatarImage src={avatarUrl} />
+                  <AvatarFallback className="bg-gradient-to-br from-[#1E90FF] to-[#FF2D95] text-white text-sm font-semibold">
+                    {fullName ? getInitials(fullName) : <User className="w-5 h-5" />}
+                  </AvatarFallback>
+                </Avatar>
+              </button>
             </div>
           </div>
         </div>

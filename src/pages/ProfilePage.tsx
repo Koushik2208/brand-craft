@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { Badge } from '../components/ui/badge';
 import { toast } from 'sonner';
-import { ArrowLeft, Camera, Edit2, Save, X, Loader2, User } from 'lucide-react';
+import { ArrowLeft, Camera, Edit2, Save, X, Loader2, User, LogOut } from 'lucide-react';
 
 interface UserProfile {
   full_name: string;
@@ -57,7 +57,7 @@ const TOPICS = [
 ];
 
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -269,6 +269,17 @@ export default function ProfilePage() {
             <h1 className="font-['Bebas_Neue',sans-serif] text-3xl bg-gradient-to-r from-[#1E90FF] to-[#FF2D95] bg-clip-text text-transparent">
               PROFILE
             </h1>
+            <Button
+              variant="ghost"
+              className="text-gray-400 hover:text-white hover:bg-transparent"
+              onClick={async () => {
+                await signOut();
+                navigate('/');
+              }}
+            >
+              <LogOut className="w-5 h-5 mr-2" />
+              Logout
+            </Button>
           </div>
         </div>
       </header>
