@@ -1,6 +1,6 @@
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/button';
-import { LogOut, Sparkles, TrendingUp, Users, Zap, Loader2 } from 'lucide-react';
+import { LogOut, Sparkles, TrendingUp, Users, Zap, Loader2, UserCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
@@ -159,6 +159,13 @@ export function DashboardPage() {
                   {user?.user_metadata?.full_name || user?.email?.split('@')[0]}
                 </p>
               </div>
+              <Button
+                variant="ghost"
+                className="text-gray-400 hover:text-white hover:bg-transparent"
+                onClick={() => navigate('/profile')}
+              >
+                <UserCircle className="w-5 h-5" />
+              </Button>
               <Button
                 variant="ghost"
                 className="text-gray-400 hover:text-white hover:bg-transparent"
