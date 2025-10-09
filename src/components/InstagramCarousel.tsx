@@ -1,16 +1,19 @@
 import { useState, useRef } from 'react';
 import { Button } from './ui/button';
-import { ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, User } from 'lucide-react';
 import { toast } from 'sonner';
 import html2canvas from 'html2canvas';
 
 interface InstagramCarouselProps {
   slides: string[];
   topic: string;
+  userAvatar?: string;
+  userName?: string;
 }
 
-export function InstagramCarousel({ slides, topic }: InstagramCarouselProps) {
+export function InstagramCarousel({ slides, topic, userAvatar, userName }: InstagramCarouselProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [isDownloading, setIsDownloading] = useState(false);
   const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const nextSlide = () => {
@@ -30,32 +33,60 @@ export function InstagramCarousel({ slides, topic }: InstagramCarouselProps) {
         backgroundColor: null,
         scale: 2,
         logging: false,
+        useCORS: true,
+        allowTaint: true,
       });
 
-      canvas.toBlob((blob) => {
-        if (!blob) return;
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${topic.replace(/\s+/g, '-')}-slide-${index + 1}.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        toast.success(`Slide ${index + 1} downloaded!`);
+      return new Promise<void>((resolve) => {
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            resolve();
+            return;
+          }
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `${topic.replace(/\s+/g, '-')}-slide-${index + 1}.png`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+          resolve();
+        });
       });
     } catch (error) {
       console.error('Error downloading slide:', error);
-      toast.error('Failed to download slide');
+      throw error;
     }
   };
 
   const downloadAllSlides = async () => {
-    toast.info('Downloading all slides...');
-    for (let i = 0; i < slides.length; i++) {
-      await downloadSlide(i);
-      await new Promise(resolve => setTimeout(resolve, 500));
+    if (isDownloading) return;
+
+    setIsDownloading(true);
+    toast.info('Preparing to download all slides...');
+
+    try {
+      for (let i = 0; i < slides.length; i++) {
+        await downloadSlide(i);
+        await new Promise(resolve => setTimeout(resolve, 800));
+      }
+      toast.success(`All ${slides.length} slides downloaded successfully!`);
+    } catch (error) {
+      toast.error('Failed to download some slides');
+    } finally {
+      setIsDownloading(false);
     }
+  };
+
+  const getInitials = (name: string) => {
+    if (!name) return '';
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
   };
 
   const getBackgroundGradient = (index: number) => {
@@ -94,6 +125,31 @@ export function InstagramCarousel({ slides, topic }: InstagramCarouselProps) {
                   </p>
                 </div>
               </div>
+
+              {index === 0 && (
+                <div className="absolute bottom-6 right-6">
+                  <div className="relative">
+                    {userAvatar ? (
+                      <img
+                        src={userAvatar}
+                        alt="User avatar"
+                        crossOrigin="anonymous"
+                        className="w-16 h-16 rounded-full border-4 border-white shadow-xl object-cover"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 rounded-full border-4 border-white shadow-xl bg-gradient-to-br from-[#1E90FF] to-[#FF2D95] flex items-center justify-center">
+                        {userName ? (
+                          <span className="text-white font-bold text-lg">
+                            {getInitials(userName)}
+                          </span>
+                        ) : (
+                          <User className="w-8 h-8 text-white" />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           ))}
 
@@ -146,10 +202,11 @@ export function InstagramCarousel({ slides, topic }: InstagramCarouselProps) {
           variant="outline"
           size="sm"
           onClick={downloadAllSlides}
-          className="border-[#2a2a2a] text-gray-300 hover:bg-[#1a1a1a] hover:text-white"
+          disabled={isDownloading}
+          className="border-[#2a2a2a] text-gray-300 hover:bg-[#1a1a1a] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Download className="w-4 h-4 mr-2" />
-          Download All Slides ({slides.length})
+          {isDownloading ? 'Downloading...' : `Download All Slides (${slides.length})`}
         </Button>
       </div>
     </div>

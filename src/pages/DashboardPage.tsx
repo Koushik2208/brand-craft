@@ -301,6 +301,8 @@ export function DashboardPage() {
                     <InstagramCarousel
                       slides={generatedContent.platforms.instagram.content}
                       topic={generatedContent.generated_topic}
+                      userAvatar={avatarUrl}
+                      userName={fullName}
                     />
                   </div>
 
