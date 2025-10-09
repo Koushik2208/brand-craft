@@ -7,6 +7,8 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { generateContent, GeneratedContent } from '../services/contentGenerator';
 import { toast } from 'sonner';
+import { InstagramCarousel } from '../components/InstagramCarousel';
+import { TextContent } from '../components/TextContent';
 
 export function DashboardPage() {
   const { user } = useAuth();
@@ -285,8 +287,8 @@ export function DashboardPage() {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <div className="p-6 rounded-2xl bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border-2 border-[#2a2a2a]">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  <div className="space-y-4">
                     <div className="flex items-center gap-3 mb-4">
                       <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
                         <span className="text-white font-bold text-sm">IG</span>
@@ -296,62 +298,34 @@ export function DashboardPage() {
                         <p className="text-xs text-gray-500">{generatedContent.platforms.instagram.content.length} slides</p>
                       </div>
                     </div>
-                    <div className="space-y-3 mb-4">
-                      {generatedContent.platforms.instagram.content.map((slide, index) => (
-                        <div key={index} className="p-3 rounded-lg bg-[#0d0d0d] border border-[#2a2a2a]">
-                          <p className="text-xs text-[#1E90FF] font-semibold mb-1">Slide {index + 1}</p>
-                          <p className="text-sm text-gray-300">{slide}</p>
+                    <InstagramCarousel
+                      slides={generatedContent.platforms.instagram.content}
+                      topic={generatedContent.generated_topic}
+                    />
+                  </div>
+
+                  <div>
+                    <TextContent
+                      content={generatedContent.platforms.x.content}
+                      platform="x"
+                      icon={
+                        <div className="w-10 h-10 rounded-lg bg-black flex items-center justify-center">
+                          <span className="text-white font-bold text-sm">𝕏</span>
                         </div>
-                      ))}
-                    </div>
-                    {generatedContent.platforms.instagram.cta && (
-                      <div className="p-3 rounded-lg bg-[#1E90FF]/10 border border-[#1E90FF]/30">
-                        <p className="text-xs text-[#1E90FF] font-semibold mb-1">CTA</p>
-                        <p className="text-sm text-gray-300">{generatedContent.platforms.instagram.cta}</p>
-                      </div>
-                    )}
+                      }
+                    />
                   </div>
 
-                  <div className="p-6 rounded-2xl bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border-2 border-[#2a2a2a]">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-10 h-10 rounded-lg bg-black flex items-center justify-center">
-                        <span className="text-white font-bold text-sm">𝕏</span>
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-white">X (Twitter)</h4>
-                        <p className="text-xs text-gray-500">Tweet</p>
-                      </div>
-                    </div>
-                    <div className="p-4 rounded-lg bg-[#0d0d0d] border border-[#2a2a2a] mb-4">
-                      <p className="text-sm text-gray-300 leading-relaxed">{generatedContent.platforms.x.content}</p>
-                    </div>
-                    {generatedContent.platforms.x.cta && (
-                      <div className="p-3 rounded-lg bg-[#1E90FF]/10 border border-[#1E90FF]/30">
-                        <p className="text-xs text-[#1E90FF] font-semibold mb-1">CTA</p>
-                        <p className="text-sm text-gray-300">{generatedContent.platforms.x.cta}</p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="p-6 rounded-2xl bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border-2 border-[#2a2a2a]">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-10 h-10 rounded-lg bg-[#0077B5] flex items-center justify-center">
-                        <span className="text-white font-bold text-sm">in</span>
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-white">LinkedIn</h4>
-                        <p className="text-xs text-gray-500">Professional Post</p>
-                      </div>
-                    </div>
-                    <div className="p-4 rounded-lg bg-[#0d0d0d] border border-[#2a2a2a] mb-4">
-                      <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">{generatedContent.platforms.linkedin.content}</p>
-                    </div>
-                    {generatedContent.platforms.linkedin.cta && (
-                      <div className="p-3 rounded-lg bg-[#1E90FF]/10 border border-[#1E90FF]/30">
-                        <p className="text-xs text-[#1E90FF] font-semibold mb-1">CTA</p>
-                        <p className="text-sm text-gray-300">{generatedContent.platforms.linkedin.cta}</p>
-                      </div>
-                    )}
+                  <div>
+                    <TextContent
+                      content={generatedContent.platforms.linkedin.content}
+                      platform="linkedin"
+                      icon={
+                        <div className="w-10 h-10 rounded-lg bg-[#0077B5] flex items-center justify-center">
+                          <span className="text-white font-bold text-sm">in</span>
+                        </div>
+                      }
+                    />
                   </div>
                 </div>
 
